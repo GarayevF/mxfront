@@ -799,4 +799,127 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
     });
+
+    /* --- Reviews Slider --- */
+    var reviewsSlider = document.getElementById("reviewsSlider");
+    var reviewsPrev = document.getElementById("reviewsPrev");
+    var reviewsNext = document.getElementById("reviewsNext");
+    var reviewsDots = document.getElementById("reviewsDots");
+
+    if (reviewsSlider && reviewsPrev && reviewsNext && reviewsDots) {
+        var reviewCards = reviewsSlider.querySelectorAll(".review-card");
+        var currentIndex = 0;
+        var totalCards = reviewCards.length;
+
+        function getSlidesPerView() {
+            if (window.innerWidth <= 768) return 1;
+            if (window.innerWidth <= 1024) return 2;
+            return 3;
+        }
+
+        function getMaxIndex() {
+            var slidesPerView = getSlidesPerView();
+            return Math.max(0, totalCards - slidesPerView);
+        }
+
+        function createDots() {
+            reviewsDots.innerHTML = "";
+            var maxIndex = getMaxIndex();
+            var numDots = maxIndex + 1;
+            for (var i = 0; i < numDots; i++) {
+                var dot = document.createElement("button");
+                dot.className = "reviews-dot" + (i === currentIndex ? " active" : "");
+                dot.setAttribute("aria-label", "Go to slide " + (i + 1));
+                dot.dataset.index = i;
+                dot.addEventListener("click", function() {
+                    goToIndex(parseInt(this.dataset.index));
+                });
+                reviewsDots.appendChild(dot);
+            }
+        }
+
+        function updateDots() {
+            var dots = reviewsDots.querySelectorAll(".reviews-dot");
+            dots.forEach(function(dot, index) {
+                dot.classList.toggle("active", index === currentIndex);
+            });
+        }
+
+        function updateSlider() {
+            var wrapperWidth = reviewsSlider.parentElement.offsetWidth;
+            var slidesPerView = getSlidesPerView();
+            var gap = 24;
+            var totalGaps = slidesPerView - 1;
+            var cardWidth = (wrapperWidth - (totalGaps * gap)) / slidesPerView;
+            var translateX = currentIndex * (cardWidth + gap);
+            reviewsSlider.style.transform = "translateX(-" + translateX + "px)";
+            updateDots();
+
+            var maxIndex = getMaxIndex();
+            reviewsPrev.disabled = currentIndex === 0;
+            reviewsNext.disabled = currentIndex >= maxIndex;
+        }
+
+        function goToIndex(index) {
+            var maxIndex = getMaxIndex();
+            currentIndex = Math.max(0, Math.min(index, maxIndex));
+            updateSlider();
+        }
+
+        function nextSlide() {
+            var maxIndex = getMaxIndex();
+            if (currentIndex < maxIndex) {
+                currentIndex++;
+                updateSlider();
+            }
+        }
+
+        function prevSlide() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateSlider();
+            }
+        }
+
+        reviewsNext.addEventListener("click", nextSlide);
+        reviewsPrev.addEventListener("click", prevSlide);
+
+        // Initialize
+        createDots();
+        updateSlider();
+
+        // Handle resize
+        var resizeTimeout;
+        window.addEventListener("resize", function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                var maxIndex = getMaxIndex();
+                if (currentIndex > maxIndex) {
+                    currentIndex = maxIndex;
+                }
+                createDots();
+                updateSlider();
+            }, 150);
+        });
+
+        // Touch/Swipe support
+        var touchStartX = 0;
+        var touchEndX = 0;
+
+        reviewsSlider.addEventListener("touchstart", function(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        reviewsSlider.addEventListener("touchend", function(e) {
+            touchEndX = e.changedTouches[0].screenX;
+            var diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) {
+                    nextSlide();
+                } else {
+                    prevSlide();
+                }
+            }
+        }, { passive: true });
+    }
 });
